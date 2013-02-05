@@ -2,8 +2,8 @@
 Author: Fatal-Optimism, 2013
 
 inventory.lua
-An inventory implementation in Lua with some OOP. Used as a project to learn Lua. From memory, I think
-the moving and logging sections (and maybe find?) are incomplete.
+An inventory implementation in Lua with some OOP. Used as a project to learn Lua. Has basic functionality
+but may contain bugs in certain conditions and use cases.
 
 Classes: Item, Cell, Inventory
 ]]
