@@ -11,24 +11,24 @@ Classes: Item, Cell, Inventory
 -- [Item Class] --
 Item =
 {
-	weight = 0,
+    weight = 0,
     sizeX = 1,
     sizeY = 1,
-    coords = {{}},
+    coords = {},
     description = "Blank Item"
 }
 
 -- Constructor
 function Item:new(x, y)
-      local o = {}
-      setmetatable(o, self)
-      self.__index = self
-	  self.__tostring = Item.toString
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+    self.__tostring = Item.toString
 
-	  o.sizeX = x or self.sizeX
-	  o.sizeY = y or self.sizeY
+    o.sizeX = x or self.sizeX
+    o.sizeY = y or self.sizeY
 
-      return o
+    return o
 end
 
 -- ToString
@@ -50,15 +50,15 @@ Cell =
 
 -- Constructor
 function Cell:new(x, y)
-      local o = {}
-      setmetatable(o, self)
-      self.__index = self
-	  self.__tostring = Cell.toString
+    local o = {}
+    setmetatable(o, self)
+    self.__index = self
+    self.__tostring = Cell.toString
 
-	  o.posX = x or self.posX
-	  o.posY = y or self.posY
+    o.posX = x or self.posX
+    o.posY = y or self.posY
 
-      return o
+    return o
 end
 
 -- ToString
@@ -77,7 +77,7 @@ end
 
 
 -- [Inventory Class] --
--- Oh Shit
+-- Here... we... go!
 Inventory =
 {
 	inv = {}, -- 2D table
@@ -88,6 +88,7 @@ Inventory =
 		["add"] = "",
 		["find"] = "",
 		["move"] = "",
+        ["delete"] = "",
 	},
 	logging = false,
 	sizeX = 0,
@@ -160,48 +161,63 @@ function Inventory:modify(coordList, incItem, switchy)
 	local x = 0
 	local y = 0
 	local myLog = ""
+    local modifiedCount = 0
 
-	for key, coords in pairs(coordList) do
+    -- For each set of coordinates...
+	for i, coords in ipairs(coordList) do
 		x = coords[1]
 		y = coords[2]
 
+        -- Check for correct params
 		if x > 0 and x <= self.sizeX and y > 0 and y <= self.sizeY then
 			if switch == 0 then
 
-				myLog = "Switching isOccupied state..."
-
 				-- Switch the cell's state to the opposite state
 				self.inv[y][x].isOccupied = not self.inv[y][x].isOccupied
+                myLog = myLog .. x .. "," .. y .. " switched to "
 
 				-- If a cell is now occupied, give it the occupying item
 				if self.inv[y][x].isOccupied and item ~= nil then
-					myLog = myLog .. " to occupied"
+					myLog = myLog .. "occupied"
 					self.inv[y][x].heldItem = item
 				-- Otherwise the cell is becoming unoccupied, remove the item
 				else
-					myLog = myLog .. " to unoccupied"
+					myLog = myLog .. "unoccupied"
 					self.inv[y][x].heldItem = nil
 				end
+                
+                modifiedCount = modifiedCount + 1
 
 			elseif switch == 1 then
 				myLog = "Switching isUsable state"
 				self.inv[y][x].isUsable = not self.inv[y][x].isUsable
-			end
-		end
+                modifiedCount = modifiedCount + 1
+			else
+                myLog = "Unknown 3rd parameter for switch"
+            end
+		else
+            myLog = "Coords " .. x .. ", " .. " out of scope " .. self.sizeX .. ", " .. self.sizeY
+        end
+        
+        if i ~= #coordList then myLog = myLog .. "\n" end
 	end
 
 	if self.logging then
 		self.invLog["modify"] = self.invLog["modify"] .. myLog .. "\n"
 	end
+    
+    return modifiedCount
 end
 
--- addItem - Add an item to the inventory at the specified x and y coordinates
-function Inventory:add(item, x, y)
+-- addItem - Add an item to the inventory at the specified coordinates {x, y}
+function Inventory:add(item, coordStart)
 	local canPlace = false
 	local added = false
 	local underLimit = true
 	local coordList = {}
 	local myLog = ""
+    local x = coordStart[1]
+    local y = coordStart[2]
 
 	-- Check if under weight limit
 	if self.weightLimit ~= 0 then
@@ -256,7 +272,6 @@ function Inventory:add(item, x, y)
 					end
 				end
 
-
 				-- Add item to our list of inventory items
 				if canPlace then
 					self.currentWeight = self.currentWeight + item.weight -- Adjust weight
@@ -266,7 +281,6 @@ function Inventory:add(item, x, y)
 					added = true
 					myLog = "'" .. tostring(item) .. "' has been added at " .. x .. "," .. y
 				end
-
 			end
 		end
 	end
@@ -281,65 +295,51 @@ function Inventory:find(targetCoord)
 	local foundItem = nil
 	local mylog = ""
 
-	-- Note the X Y reversal
+	-- Note the X Y reversal (targetCoord format: {x, y})
 	foundItem = self.inv[targetCoord[2]][targetCoord[1]].heldItem
 
 	if foundItem ~= nil then
 		myLog = "Found '" .. tostring(foundItem) .. "' at " .. targetCoord[1] .. "," .. targetCoord[2]
 	else
-		myLog = "Cound not find anything at " .. tostring(targetCoord)
+		myLog = "Cound not find anything at " .. targetCoord[1] .. "," .. targetCoord[2]
 	end
 
 	if self.logging then
 		self.invLog["find"] = self.invLog["find"] .. myLog .. "\n"
 	end
-
-	-- Check if an item has the specified coordinate (i.e. check for item at [1, 1])
-	-- Go through each item
---~ 	for i, currentItem in ipairs(self.items) do
---~ 		-- Go through each coordinate the current item has
---~ 		for j, coord in ipairs(currentItem.coords) do
-
---~ 			if coord[1] == targetCoord[1] and coord[2] == targetCoord[2] then
---~ 				foundItem = currentItem
---~ 				break
---~ 			end
---~ 		end
---~ 	end
 
 	return foundItem
 end
 
 -- Delete an item from the inventory by coordinate location
 function Inventory:delete(targetCoord)
-	local deleted = false
-	local item = self:find(targetCoord)
-	local annoying = 0
+	local result = 0
+    local item = self:find(targetCoord)
 	local myLog = ""
-
+    
 	if item ~= nil then
-		self.currentWeight = self.currentWeight - item.weight -- Modify weight
+        result = self:modify(item.coords) -- Modify cells
+		self.currentWeight = self.currentWeight - item.weight -- Update weight
 		self.items[item] = nil -- Remove reference to item, let lua garbage collection do its thing
-		self:modify(item.coords) -- Modify cells
-		myLog = "Deletion successful\n\n"
+		myLog = "Deletion successful"
 	else
-		myLog = "Deletion failed\n\n"
+		myLog = "Deletion failed"
 	end
 
-	-- Updates find log, because this function is entirely dependent on it
+    myLog = myLog .. "(" .. result .. ") at " .. targetCoord[1] .. "," .. targetCoord[2]
+
 	if self.logging then
-		self.invLog["find"] = self.invLog["find"] .. myLog .. "\n"
+		self.invLog["delete"] = self.invLog["delete"] .. myLog .. "\n"
 	end
 end
 
--- Move an item by coordinates
-function Inventory:move(toCoord, fromCoord)
+-- Move an item by coordinates - could use Add more...
+function Inventory:move(fromCoord, toCoord)
 	local canPlace = true
 	local item = self:find(fromCoord)
 	local x = toCoord[1]
 	local y = toCoord[2]
 	local newCoords = {}
-	local currentCoords = item.coords
 	local myLog = ""
 
 	myLog = "Coordinates " .. x .. "," .. y .. " don't exist in inventory"
@@ -358,23 +358,22 @@ function Inventory:move(toCoord, fromCoord)
 					table.insert(newCoords, {j, i})
 
 					-- Check if we can place an item at the current location
-					if  not self.inv[j][i].isUsable then
-						myLog = "An unusable cell blocked the item placement at " .. j .. "," .. y
-						canPlace = false
-						break
-					elseif self.inv[j][i].isOccupied and self.inv[j][i].heldItem ~= item then
-						myLog = "A foreign occupied cell blocked the item placement at " .. j .. "," .. y
-						canPlace = false
-						break
+                    -- is already there or (is usable and is unoccupied)
+					if self.inv[j][i].heldItem == item or (self.inv[j][i].isUsable and not self.inv[j][i].isOccupied) then
+						canPlace = true -- This check is kind of reversed atm...
+                    else
+                        canPlace = false
+                        myLog = "A bad cell blocked the item placement at " .. j .. "," .. y
+                        break
 					end
 				end
 			end
 
 			-- Add item to our list of inventory items
 			if canPlace then
-				self:modify(currentCoords) -- Unmark old cells
+				self:modify(item.coords) -- Unmark old cells
 				self:modify(newCoords, item) -- Mark new cells
-				item.coords = coordList -- Tell item where it is
+				item.coords = newCoords -- Tell item where it is
 				myLog = "'" .. tostring(item) .. "' has been moved from " .. tostring(fromCoord) .. " to "  .. tostring(toCoord)
 			end
 
@@ -385,70 +384,49 @@ function Inventory:move(toCoord, fromCoord)
 		self.invLog["move"] = self.invLog["move"] .. myLog .. "\n"
 	end
 end
-
 -- [/Inventory Class] --
 
 
 
 
 -- Testing
-
 -- Testing idea: put messages from methods into a key mapping table, print the table
 
 -- Item
-print("\nTesting Item:")
+--print("\nTesting Item:")
 a = Item:new()
 b = Item:new(3, 2)
 
 b.description = "Item2"
 b.weight = 100
 
-print("Item Size Comparison: " .. a.sizeX .. " vs " .. b.sizeX)
-print(a)
-print(b)
+--print("Item Size Comparison: " .. a.sizeX .. " vs " .. b.sizeX)
+--print(a)
+--print(b)
 
 -- Cell
-print("\nTesting Cell:")
+--print("\nTesting Cell:")
 c = Cell:new()
 d = Cell:new(5, 5)
 
 c.isOccupied = true
-print(c)
-print(d)
+--print(c)
+--print(d)
 
 -- Inventory
-print("\nTesting Inventory:")
 invy = Inventory:new(5, 5)
 invy.logging = true
 invy2 = Inventory:new()
-print(invy.sizeX .. ":" .. invy.sizeY)
-print(invy2.sizeX .. ":" .. invy2.sizeY)
 
 invy:build()
-
-num1 = 1
-num2 = 1
-print("Inserting " .. b:toString() .. " at " .. num1 .. "," .. num2)
-invy:add(b, num1, num2)
-
-print(invy)
-print("Found item: " .. tostring(invy:find({1, 1})))
+invy:add(b, {1, 1})
 invy:move({1,1}, {2,2})
---invy:delete({1,1})
-print(invy.items[1])
-print("Deleted item.")
-print(invy)
+invy:delete({2, 2})
+invy:find({2, 2})
 
--- Move is broken and so is dynamically printing logs
-
-print(invy.invLog["build"])
-print(invy.invLog["add"])
-print(invy.invLog["modify"])
-print(invy.invLog["find"])
-print(invy.invLog["move"])
-
-for key, value in ipairs(invy.invLog) do
-	print("um")
+for key, value in pairs(invy.invLog) do
 	print(key)
 	print(value)
 end
+
+print(invy)
