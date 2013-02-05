@@ -43,9 +43,9 @@ Cell =
 {
     posX = -1,
     posY = -1,
-	isOccupied = false,
-	isUsable = true,
-	heldItem = nil
+    isOccupied = false,
+    isUsable = true,
+    heldItem = nil
 }
 
 -- Constructor
