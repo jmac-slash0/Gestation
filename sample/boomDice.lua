@@ -51,14 +51,21 @@ function diceRoll(dice, sides)
     return result
 end
 
--- A quick compare function for tables
-function compare3(a, b)
-  return a[1] < b[1]
+-- Helps sort tables with an appropriate compare function
+-- By default, looks at the first element in the table items, and sorts descending
+function sortTable(list, element, ascending)
+    element = element or 1 -- Element to pick out of the table for sorting purposes
+    compare = nil -- The resulting compare function to past to table.sort
+
+    if ascending then 
+        compare = function(a, b) return a[element] < b[element] end
+    else -- descending
+        compare = function(a, b) return a[element] > b[element] end
+    end
+    
+    table.sort(list, compare)
 end
 
-function compare2(a, b)
-  return a[2] > b[2]
-end
 
 sum = 0
 count = 0
@@ -69,11 +76,11 @@ fails = 0
 norms = 0
 results = {}
 
-for i=1, 1000000 do
+for i=1, 10 do
     num = diceRoll(1, 6)
     
     found = false
-    for key, value in pairs(results) do
+    for key, value in ipairs(results) do
         if value[1] == num then
             value[2] = value[2] + 1
             found = true
@@ -100,7 +107,8 @@ for i=1, 1000000 do
         fails = fails + 1 
     end
     
-    if i == 10000 then table.sort(results, compare2) end
+    -- Small optimization?
+    if i == 10000 then sortTable(results, 2) end
     
 end
 
@@ -113,10 +121,10 @@ print("Norms:", norms)
 print("Wins:", wins)
 
 
-table.sort(results, compare3)
+sortTable(results, 2)
 --file = io.open("values-" .. os.time() .. ".csv", "w")
 print()
-for key, value in pairs(results) do
+for key, value in ipairs(results) do
     print("Found " .. value[2] .. " instances of " .. value[1])
     --file:write(value[1] .. "," .. value[2] .. "\n")
 end
