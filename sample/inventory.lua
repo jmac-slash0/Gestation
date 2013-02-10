@@ -2,13 +2,28 @@
 Author: Fatal-Optimism, 2013
 
 inventory.lua
-An inventory implementation in Lua with some OOP. Used as a project to learn Lua. Has basic functionality
-but may contain bugs in certain conditions and use cases.
+An inventory implementation in Lua with some OOP. Used as a simple project to learn Lua. Has basic functionality
+but may contain bugs in certain conditions and use cases. The idea is to simulate an inventory system like you
+might find in a game like X-COM: UFO Defense (1994). See here: http://www.ufopaedia.org/images/f/fe/Slots.png
+
+So you might have a number of inventory spaces, of varying sizes or capacities, in grid format. So the backpack
+would be 3x3, and the belt would be 2x4, with the bottom middle two slots unavailable for use. Expected
+functionality is for items to be placed in areas in an inventory if they meet the size requirements. Then they
+may be moved, deleted, or searched for.
+
+The logic of the inventory is this: an Inventory is made up of a number of Cell objects. The Cell objects know
+where their location is in the inventory, their current status (open, closed, occupied), and what item, if any
+is occupying it.
 
 Classes: Item, Cell, Inventory
-]]
+--]]
 
--- [Item Class] --
+
+--[[
+Item Class
+
+An item knows where it is in the inventory, and can be added, moved, and deleted from an inventory.
+--]]
 Item =
 {
     weight = 0,
@@ -19,6 +34,7 @@ Item =
 }
 
 -- Constructor
+-- A bit funky because Lu
 function Item:new(x, y)
     local o = {}
     setmetatable(o, self)
@@ -35,10 +51,14 @@ end
 function Item:toString()
 	return self.description
 end
--- [/Item Class] --
 
 
--- [Cell Class] --
+--[[
+Cell Class
+
+An Inventory will essentially hold a bunch of Cells. The Cells know their current state (occupied, usable), and 
+conveniently contain a reference to the object that is occupying them.
+--]]
 Cell =
 {
     posX = -1,
@@ -73,11 +93,14 @@ function Cell:toString()
 
     return str
 end
--- [/Cell Class] --
 
 
--- [Inventory Class] --
--- Here... we... go!
+--[[
+Inventory Class
+
+An Inventory will manage Cells and Items, and allow for a variety of customizable Inventory objects to be
+created. Also takes advantage of some of the cool things about Lua tables to do logging. Here... we... go!
+--]]
 Inventory =
 {
     inv = {}, -- 2D table
@@ -135,11 +158,17 @@ function Inventory:toString()
     return str
 end
 
--- build
--- Quick note on 2D lists and x,y coordinates: i=y(outer loop),j=x(inner loop)
+--[[ 
+build
+
+Using the specified size, create an inventory, building a series of tables and populating them with
+Cell objects.
+
+Quick note on 2D lists and x,y coordinates: i=y(outer loop),j=x(inner loop)
+--]]
 function Inventory:build()
     self.inv = {}
-
+    
     for i = 1, self.sizeY do
         table.insert(self.inv, {})
         for j = 1, self.sizeX do
@@ -152,9 +181,17 @@ function Inventory:build()
     end
 end
 
--- modify - Modify the cells at the coordinates given as coordList; switchy determines
--- if the modification is the Occupied (0) or Usable (1) status; switches the flips!
--- The cell can also be told what item it is on it
+--[[ 
+modify
+
+Modify the cells at the coordinates given as coordList; switchy determines if the modification is the 
+Occupied (0) or Usable (1) status; switches the flips! The cell can also be told what item it is on it.
+
+Params: List of coordinates, [the item being placed thier], modify behavior (0 = default, flip occupied
+state, 1 = flip usable state)
+
+Returns: Number of cells modified
+--]]
 function Inventory:modify(coordList, incItem, switchy)
     local switch = switchy or 0
     local item = incItem or nil
@@ -209,7 +246,14 @@ function Inventory:modify(coordList, incItem, switchy)
     return modifiedCount
 end
 
--- addItem - Add an item to the inventory at the specified coordinates {x, y}
+--[[ 
+add
+
+Add items to the inventory.
+
+Params: the item to be added, and the key coordinates
+Returns: bool success
+--]]
 function Inventory:add(item, coordStart)
     local canPlace = false
     local added = false
@@ -288,9 +332,19 @@ function Inventory:add(item, coordStart)
     if self.logging then
         self.invLog["add"] = self.invLog["add"] .. myLog .. "\n"
     end
+    
+    return (underLimit and canPlace)
 end
 
--- Find out if an item is at the specified coordinates
+--[[ 
+find
+
+Find items at the specified coordinates in the inventory. Made convenient by having the Cell object know
+what Item it is holding.
+
+Params: coordinates to search {x, y}
+Returns: the item if found, otherwise nil
+--]]
 function Inventory:find(targetCoord)
     local foundItem = nil
     local mylog = ""
@@ -311,12 +365,19 @@ function Inventory:find(targetCoord)
     return foundItem
 end
 
--- Delete an item from the inventory by coordinate location
+--[[ 
+delete
+
+Remove items from the inventory. To do: double check object reference removed from Cells as well
+
+Params: Coordinates to remove an item from {x, y}
+--]]
 function Inventory:delete(targetCoord)
     local result = 0
     local item = self:find(targetCoord)
     local myLog = ""
 
+    -- If item was found...
     if item ~= nil then
         result = self:modify(item.coords) -- Modify cells
         self.currentWeight = self.currentWeight - item.weight -- Update weight
@@ -333,7 +394,13 @@ function Inventory:delete(targetCoord)
     end
 end
 
--- Move an item by coordinates - could use Add more...
+--[[ 
+move
+
+Move items around in the inventory
+
+Params: location of the item {x, y}, location it should move to {x, y}
+--]]
 function Inventory:move(fromCoord, toCoord)
     local canPlace = true
     local item = self:find(fromCoord)
@@ -376,7 +443,6 @@ function Inventory:move(fromCoord, toCoord)
                 item.coords = newCoords -- Tell item where it is
                 myLog = "'" .. tostring(item) .. "' has been moved from " .. tostring(fromCoord) .. " to "  .. tostring(toCoord)
             end
-
         end
     end
 
