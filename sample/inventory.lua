@@ -106,6 +106,7 @@ Inventory =
     inv = {}, -- 2D table
     invLog =
     {
+        ["sequence"] = "",
         ["build"] = "",
         ["modify"] = "",
         ["add"] = "",
@@ -123,6 +124,7 @@ Inventory =
 }
 
 -- Constructor
+-- If x and y parameters given, set inventory size to those and call build()
 function Inventory:new(x, y)
     local o = {}
     setmetatable(o, self)
@@ -131,7 +133,15 @@ function Inventory:new(x, y)
 
     o.sizeX = x or self.sizeX
     o.sizeY = y or self.sizeY
-
+    
+    if (x ~= self.sizeX and y ~= self.sizeY) then
+        o:build()
+    end
+    
+    if o.logging then
+        o.invLog["sequence"] = o.invLog["sequence"] .. "new\n"
+    end
+    
     return o
 end
 
@@ -155,6 +165,10 @@ function Inventory:toString()
         str = "[]"
     end
 
+    if self.logging then
+        self.invLog["sequence"] = self.invLog["sequence"] .. "toString\n"
+    end
+    
     return str
 end
 
@@ -178,6 +192,7 @@ function Inventory:build()
 
     if self.logging then
         self.invLog["build"] = self.invLog["build"] .. "Built new inventory " .. #self.inv[1] .. "x" .. #self.inv .. "\n"
+        self.invLog["sequence"] = self.invLog["sequence"] .. "build\n"
     end
 end
 
@@ -241,6 +256,7 @@ function Inventory:modify(coordList, incItem, switchy)
 
     if self.logging then
         self.invLog["modify"] = self.invLog["modify"] .. myLog .. "\n"
+        self.invLog["sequence"] = self.invLog["sequence"] .. "modify\n"
     end
 
     return modifiedCount
@@ -331,6 +347,7 @@ function Inventory:add(item, coordStart)
 
     if self.logging then
         self.invLog["add"] = self.invLog["add"] .. myLog .. "\n"
+        self.invLog["sequence"] = self.invLog["sequence"] .. "add\n"
     end
     
     return (underLimit and canPlace)
@@ -360,6 +377,7 @@ function Inventory:find(targetCoord)
 
     if self.logging then
         self.invLog["find"] = self.invLog["find"] .. myLog .. "\n"
+        self.invLog["sequence"] = self.invLog["sequence"] .. "find\n"
     end
 
     return foundItem
@@ -391,6 +409,7 @@ function Inventory:delete(targetCoord)
 
     if self.logging then
         self.invLog["delete"] = self.invLog["delete"] .. myLog .. "\n"
+        self.invLog["sequence"] = self.invLog["sequence"] .. "delete\n"
     end
 end
 
@@ -448,6 +467,7 @@ function Inventory:move(fromCoord, toCoord)
 
     if self.logging then
         self.invLog["move"] = self.invLog["move"] .. myLog .. "\n"
+        self.invLog["sequence"] = self.invLog["sequence"] .. "move\n"
     end
 end
 -- [/Inventory Class] --
@@ -484,15 +504,14 @@ invy = Inventory:new(5, 5)
 invy.logging = true
 invy2 = Inventory:new()
 
-invy:build()
 invy:add(b, {1, 1})
 invy:move({1,1}, {2,2})
 invy:delete({2, 2})
 invy:find({2, 2})
 
+print(invy .. "\n")
+
 for key, value in pairs(invy.invLog) do
 	print(key)
 	print(value)
 end
-
-print(invy)
