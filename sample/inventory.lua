@@ -34,7 +34,7 @@ Item =
 }
 
 -- Constructor
--- A bit funky because Lu
+-- A bit funky because Lua
 function Item:new(x, y)
     local o = {}
     setmetatable(o, self)
@@ -476,28 +476,19 @@ end
 
 
 -- Testing
--- Testing idea: put messages from methods into a key mapping table, print the table
 
 -- Item
---print("\nTesting Item:")
 a = Item:new()
 b = Item:new(3, 2)
 
 b.description = "Item2"
 b.weight = 100
 
---print("Item Size Comparison: " .. a.sizeX .. " vs " .. b.sizeX)
---print(a)
---print(b)
-
 -- Cell
---print("\nTesting Cell:")
 c = Cell:new()
 d = Cell:new(5, 5)
 
 c.isOccupied = true
---print(c)
---print(d)
 
 -- Inventory
 invy = Inventory:new(5, 5)
@@ -511,6 +502,7 @@ invy:find({2, 2})
 
 print(invy .. "\n")
 
+-- Display inventory logs
 for key, value in pairs(invy.invLog) do
 	print(key)
 	print(value)
