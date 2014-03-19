@@ -1,6 +1,8 @@
 /*
 * jsfiddle project to take two rectangles with the coordinates of their top left and lower right corners and find
 * the intersecting rectangle's coordinates
+*
+* requires jquery for output
 */
 
 
@@ -108,6 +110,4 @@ var rect3 = getIntersection(rect1, rect2);
 
 console.log('Upper Left: ' + rect3.upperLeft.x + ", " + rect3.upperLeft.y);
 console.log('Lower Right: ' + rect3.lowerRight.x + ", " + rect3.lowerRight.y);
-
-
 
